@@ -42,7 +42,10 @@ def ph_discrete_log(h,g,p):
   '''
   # print("Solving {} = {} ** x mod {} via Pohlig-Hellman".format(h,g,p))
   # first, get the factors of p-1
-  factors = factorize(p-1)
+  factor_dict = factorize(p-1)
+  factors = []
+  for f in factor_dict:
+    factors.append(f**factor_dict[f])
 
   # then, build lists of smaller g_i's and h_i's
   gs = []
@@ -133,7 +136,7 @@ def isPrime(n,k=10):
       continue
 
     for j in range(0,r-1):
-      print(x)
+      # print(x)
       x = (x*x) % n
 
       if x==1:
@@ -159,6 +162,9 @@ def pollard_rho(n,x=2):
   y=x
   d = 1
 
+  if n%2 == 0:
+    return 2
+
   while d==1:
     x = pollard_g(x,n)
     y = pollard_g(pollard_g(y,n),n)
@@ -174,22 +180,40 @@ def factorize(n,x=2):
   ''' Return a list of tuples (factor, power) such that
   n = sum( factor**power) over the whole list
   '''
-  factors = []
+  factors = {}
   while n > 1:
+    # print("factors: "+str(factors))
     q = pollard_rho(n,x)
     if q >= 2 and not isPrime(q):
       # print("refactoring {}".format(q))
       # when you refactor, try a different x value
       sub_factors = factorize(q,randint(0,q-1))
-      factors = factors + sub_factors
+      insert_factors(sub_factors, factors)
     elif q == -1:
       q = n
-      factors.append(q)
+      insert_factors(q,factors)
     else:
-      factors.append(q)
+      insert_factors(q,factors)
     n = n // q
 
   return factors
+
+
+def insert_factors(src, dest):
+  ''' merge a factor or dict of factors into a dictionary of factors 
+  '''
+  if type(src) is dict: # if src is a dict of factors, merge into dest
+    for f in src:
+      if f in dest:
+        dest[f] += src[f]
+      else:
+        dest[f] = src[f]
+  else: # if src is a single factor, just insert/update dest
+    if src in dest:
+      dest[src]+=1
+    else:
+      dest[src]=1
+
 
 def chinese_remainder_theorem(congruences):
   ''' Perform the CRT on the list of 2-tuples representing congruences;
